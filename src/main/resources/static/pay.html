@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>支付页面</title>
+    <script src="js/jweixin.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.4/vue.js"></script>
+</head>
+<body>
+<div id="app">
+    <label>
+        支付金额: {{total}}元
+    </label>
+    <br>
+    <button @click="unifiedOrder">确定支付</button>
+</div>
+</body>
+<style>
+    div {
+        font-size: 50px
+    }
+
+    button {
+        font-size: 50px;
+        background-color: #dca060
+    }
+</style>
+<script>
+    var mv = new Vue({
+        el: '#app',
+        data() {
+            return {
+                total: 0.01,
+                openId: ''
+            }
+        },
+        mounted() {
+            this.openId = this.getQueryValue('openId')
+            this.getConfig()
+        },
+
+        methods: {
+            /**
+             * [通过参数名获取url中的参数值]
+             * @param  {[string]} queryName [参数名]
+             * @return {[string]}           [参数值]
+             */
+            getQueryValue(queryName) {
+                var query = decodeURI(window.location.search.substring(1));
+                var vars = query.split("&");
+                for (var i = 0; i < vars.length; i++) {
+                    var pair = vars[i].split("=");
+                    if (pair[0] == queryName) {
+                        return pair[1];
+                    }
+                }
+                return null;
+            },
+            getConfig() {
+                const that = this
+                const data = {
+                    params: {
+                        url: location.href.split("#")[0]
+                    }
+                }
+                axios.get('/wx/getConfigInfo', data).then((response) => {
+                    that.config(response.data)
+                })
+
+            },
+            //微信JSSDK授权配置
+            config(data) {
+                wx.config({
+                    debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                    appId: data.appId, // 必填，公众号的唯一标识 公众号已经获取到
+                    timestamp: data.timestamp, // 必填，生成签名的时间戳 WXPayUtil.getCurrentTimestamp()
+                    nonceStr: data.nonceStr, // 必填，生成签名的随机串 WXPayUtil.generateNonceStr()
+                    signature: data.signature,// 必填，签名 需要获取jsapi_ticket,access_token,详情见官方文档 https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#62
+                    jsApiList: ['chooseWXPay'] // 必填，需要使用的JS接口列表 ['chooseWXPay']
+                })
+                //接口授权检查
+                wx.checkJsApi({
+                    jsApiList: ['chooseWXPay'], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+                    success: function (res) {
+                        // 以键值对的形式返回，可用的api值true，不可用为false
+                        // 如：{"checkResult":{"chooseImage":true},"errMsg":"checkJsApi:ok"}
+                    }
+                });
+            },
+            // 统一下单
+            unifiedOrder() {
+                const that = this
+                const data = {
+                    params: {
+                        total: this.total,
+                        openId: this.openId
+                    }
+                }
+                axios.get('/wx/unifiedOrder', data).then((response) => {
+                    that.pay(response.data)
+                })
+
+            },
+            pay(data) {
+                wx.chooseWXPay({
+                    timestamp: data.timeStamp, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+                    nonceStr: data.nonceStr, // 支付签名随机串，不长于 32 位
+                    package: data.package, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=\*\*\*）
+                    signType: data.signType, // 签名方式,必须跟统一下单接口签名方式一致
+                    paySign: data.paySign, // 支付签名
+                    success: function (res) {
+                        if (res.errMsg == "chooseWXPay:ok") {
+                            //支付成功后跳转的页面
+                            console.log('支付成功')
+                        }
+                    },
+                    // 支付取消回调函数
+                    cencel: function (res) {
+                        console.log('支付取消')
+                    },
+                    // 支付失败回调函数
+                    fail: function (res) {
+                        console.log('支付失败')
+                    }
+                });
+            }
+
+        }
+    });
+
+</script>
+</html>

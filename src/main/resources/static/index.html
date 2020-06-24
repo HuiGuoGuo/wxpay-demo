@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <script src="js/axios.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.4/vue.js"></script>
+
+</head>
+<body>
+<div id="app">
+    <button @click="authorize">微信授权</button>
+</div>
+</body>
+<style>
+    div  {
+        font-size: 50px
+    }
+    button  {
+        font-size: 50px;
+        background-color: #dca060
+    }
+</style>
+<script>
+    let mv = new Vue({
+        el: '#app',
+        methods: {
+            authorize (){
+                window.location.href = "http://miao.com/wx/authorize"
+            }
+        }
+    });
+
+</script>
+</html>
